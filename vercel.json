@@ -1,12 +1,12 @@
 {
   "buildCommand": "bun run build",
-  "outputDirectory": "dist/k-forge-web",
+  "outputDirectory": "dist/k-forge-web/browser",
   "installCommand": "bun install",
   "framework": "angular",
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "source": "/((?!.*\\.).*)",
+      "destination": "/index.html"
     }
   ]
 }

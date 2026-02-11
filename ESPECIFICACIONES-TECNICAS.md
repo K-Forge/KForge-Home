@@ -261,7 +261,7 @@ bun run build
 ```
 
 **Output**:
-- Directorio: `dist/k-forge-web/`
+- Directorio: `dist/k-forge-web/browser/`
 - Archivos principales:
   - `index.html`
   - `main-[hash].js` (~164 KB raw / ~47 KB gzipped)
@@ -280,11 +280,11 @@ bun run build
 ```json
 {
   "buildCommand": "bun run build",
-  "outputDirectory": "dist/k-forge-web",
+  "outputDirectory": "dist/k-forge-web/browser",
   "installCommand": "bun install",
   "framework": "angular",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
   ]
 }
 ```

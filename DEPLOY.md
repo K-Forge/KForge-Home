@@ -28,7 +28,7 @@ bun run ng serve
 # Compilar para producción
 bun run build
 
-# Los archivos compilados estarán en: dist/k-forge-web/
+# Los archivos compilados estarán en: dist/k-forge-web/browser/
 ```
 
 ## 🚀 Deploy en Vercel (Recomendado)
