@@ -2,6 +2,7 @@ export interface GithubMemberProject {
     repoName: string;
     repoUrl: string;
     commits: number;
+    lastActivityAt: string;
 }
 
 export interface GithubMember {

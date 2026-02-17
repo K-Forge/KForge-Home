@@ -134,6 +134,10 @@ export class App implements OnInit, OnDestroy {
   @HostListener('window:scroll')
   onScroll(): void {
     this.scrolled.set(window.scrollY > 50);
+
+    if (window.scrollY <= 10 && this.activeSection() !== 'home') {
+      this.activeSection.set('home');
+    }
   }
 
   private setupSectionObserver(): void {

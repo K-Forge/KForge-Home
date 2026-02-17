@@ -25,23 +25,44 @@ const translations: Record<string, Record<Lang, string>> = {
     // ── About ──
     'about.title': { es: 'Nosotros', en: 'About Us' },
     'about.subtitle': {
-        es: 'Un espacio donde estudiantes apasionados construyen el futuro, juntos.',
-        en: 'A space where passionate students build the future, together.',
+        es: 'Tres pilares que definen quiénes somos, qué hacemos y cómo lo hacemos.',
+        en: 'Three pillars that define who we are, what we do, and how we do it.',
     },
-    'about.mission.title': { es: 'Nuestra Misión', en: 'Our Mission' },
-    'about.mission.desc': {
-        es: 'Crear un puente entre el aula y la industria. Desarrollamos proyectos reales con tecnologías actuales para preparar estudiantes que marquen la diferencia.',
-        en: 'Bridging the gap between the classroom and industry. We build real projects with modern technologies to prepare students who make a difference.',
+
+    // 1 · El Porqué
+    'about.why.tag': { es: 'Nuestra motivación', en: 'Our motivation' },
+    'about.why.title': { es: 'Más allá del aula', en: 'Beyond the classroom' },
+    'about.why.tagline': {
+        es: 'K-Forge busca retarnos a nosotros mismos.',
+        en: 'K-Forge seeks to challenge ourselves.',
     },
-    'about.what.title': { es: 'Qué Hacemos', en: 'What We Do' },
-    'about.what.desc': {
-        es: 'Desarrollamos software en equipo: aplicaciones web, móviles, APIs y más. Organizamos workshops, hackathons y sesiones de code review semanales.',
-        en: 'We develop software as a team: web apps, mobile apps, APIs and more. We organize workshops, hackathons, and weekly code review sessions.',
-    },
-    'about.why.title': { es: 'Por Qué Unirte', en: 'Why Join' },
     'about.why.desc': {
-        es: 'Portfolio real con proyectos colaborativos, networking con la industria, mentoría entre pares y un ambiente donde aprender haciendo es la norma.',
-        en: 'Real portfolio with collaborative projects, industry networking, peer mentorship, and an environment where learning by doing is the norm.',
+        es: 'Somos un grupo de estudiantes que decidió no quedarse solo con lo que vemos en clase. Nuestra razón de ser es simple: queremos construir cosas, probar nuestras ideas y ver hasta dónde podemos llevar nuestra curiosidad técnica en un espacio libre y personal.',
+        en: 'We are a group of students who decided not to stick only with what we see in class. Our purpose is simple: we want to build things, test our ideas, and see how far we can take our technical curiosity in a free and personal space.',
+    },
+
+    // 2 · El Qué
+    'about.what.tag': { es: 'De la práctica al portfolio', en: 'From practice to portfolio' },
+    'about.what.title': { es: 'Proyectos que evolucionan', en: 'Evolving projects' },
+    'about.what.tagline': {
+        es: 'Todo lo que hacemos nace como un ejercicio o una idea pequeña.',
+        en: 'Everything we do starts as an exercise or a small idea.',
+    },
+    'about.what.desc': {
+        es: 'Lo que empieza como una práctica para entender una tecnología, lo iteramos hasta convertirlo en un proyecto sólido para nuestro portfolio o incluso para un uso real.',
+        en: 'What starts as a practice to understand a technology, we iterate on until it becomes a solid project for our portfolio or even for real use.',
+    },
+
+    // 3 · El Cómo
+    'about.how.tag': { es: 'Crecimiento en comunidad', en: 'Growth in community' },
+    'about.how.title': { es: 'Aprendizaje entre pares', en: 'Peer learning' },
+    'about.how.tagline': {
+        es: 'Trabajamos juntos porque nos gusta compartir lo que sabemos.',
+        en: 'We work together because we like to share what we know.',
+    },
+    'about.how.desc': {
+        es: 'Mostramos nuestros avances, recibimos opiniones de los demás compañeros y nos damos retroalimentación para mejorar. Es un espacio de colaboración espontánea donde el objetivo es que todos subamos nuestro nivel técnico mientras construimos algo interesante.',
+        en: 'We show our progress, receive opinions from other colleagues, and give each other feedback to improve. It is a space for spontaneous collaboration where the goal is for everyone to raise our technical level while building something interesting.',
     },
 
     // ── Projects ──
@@ -55,6 +76,16 @@ const translations: Record<string, Record<Lang, string>> = {
     'projects.viewLive': { es: 'Ver en Vivo', en: 'View Live' },
     'projects.viewMore': { es: 'Ver más en GitHub', en: 'See more on GitHub' },
     'projects.error': { es: 'Error al cargar proyectos', en: 'Error loading projects' },
+    'projects.errorTitle': { es: 'No pudimos cargar los proyectos ahora mismo', en: 'We could not load projects right now' },
+    'projects.errorUnavailable': {
+        es: 'La API de GitHub está respondiendo lento o temporalmente no disponible. Puedes volver a intentar en unos minutos.',
+        en: 'The GitHub API is currently slow or temporarily unavailable. You can try again in a few minutes.',
+    },
+    'projects.errorRateLimit': {
+        es: 'Llegamos al límite temporal de la API de GitHub. Intenta nuevamente en unos minutos.',
+        en: 'We hit the temporary GitHub API rate limit. Please try again in a few minutes.',
+    },
+    'projects.errorCta': { es: 'Ver repositorio de K-FORGE', en: 'View K-FORGE repository' },
     'projects.retry': { es: 'Reintentar', en: 'Retry' },
     'projects.empty': { es: 'No se encontraron proyectos.', en: 'No projects found.' },
 
@@ -71,8 +102,18 @@ const translations: Record<string, Record<Lang, string>> = {
     'team.noProjects': { es: 'Sin proyectos registrados en K-Forge', en: 'No registered projects in K-Forge' },
     'team.noActivity': { es: 'Sin actividad reciente', en: 'No recent activity' },
     'team.error': { es: 'No se pudo cargar el equipo.', en: 'Could not load the team.' },
+    'team.errorTitle': { es: 'No pudimos cargar el equipo ahora mismo', en: 'We could not load the team right now' },
+    'team.errorUnavailable': {
+        es: 'La API de GitHub está respondiendo lento o temporalmente no disponible. Puedes volver a intentar en unos minutos.',
+        en: 'The GitHub API is currently slow or temporarily unavailable. You can try again in a few minutes.',
+    },
+    'team.errorRateLimit': {
+        es: 'Llegamos al límite temporal de la API de GitHub. Intenta nuevamente en unos minutos.',
+        en: 'We hit the temporary GitHub API rate limit. Please try again in a few minutes.',
+    },
+    'team.errorCta': { es: 'Ver repositorio de K-FORGE', en: 'View K-FORGE repository' },
     'team.retry': { es: 'Reintentar', en: 'Retry' },
-    'team.empty': { es: 'Próximamente — el equipo está en formación.', en: 'Coming soon — the team is forming.' },
+    'team.empty': { es: 'No se encontraron integrantes del equipo.', en: 'No team members found.' },
 
     // ── Contact ──
     'contact.title': { es: 'Contacto', en: 'Contact' },
@@ -94,9 +135,9 @@ const translations: Record<string, Record<Lang, string>> = {
 
     // ── Footer ──
     'footer.tagline': { es: 'Club de Desarrollo de Software', en: 'Software Development Club' },
-  'footer.contact': { es: 'Contacto', en: 'Contact' },
-  'footer.toTop': { es: 'Volver arriba', en: 'Back to top' },
-  'footer.madeBy': { es: 'Hecho por', en: 'Made by' },
+    'footer.contact': { es: 'Contacto', en: 'Contact' },
+    'footer.toTop': { es: 'Volver arriba', en: 'Back to top' },
+    'footer.madeBy': { es: 'Hecho por', en: 'Made by' },
 };
 
 @Injectable({ providedIn: 'root' })

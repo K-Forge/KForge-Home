@@ -12,6 +12,7 @@ export class GithubService {
   private readonly ORG = 'K-Forge';
   private readonly API_BASE = 'https://api.github.com';
   private readonly PRIORITY_REPOS = ['K-APP', 'Gretta', 'Tienda-K', 'KomidaGPT'];
+  private readonly REPOS_CACHE_KEY = 'kforge_repos_v2';
   private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
   // Repos state
@@ -31,11 +32,15 @@ export class GithubService {
   }
 
   fetchRepos(): void {
-    const cached = this.getCache<GithubRepo[]>('kforge_repos');
-    if (cached) {
+    const cached = this.getCache<GithubRepo[]>(this.REPOS_CACHE_KEY);
+    if (cached && cached.length > 0) {
       this.repos.set(cached);
       this.loading.set(false);
       return;
+    }
+
+    if (cached && cached.length === 0) {
+      sessionStorage.removeItem(this.REPOS_CACHE_KEY);
     }
 
     this.loading.set(true);
@@ -47,23 +52,32 @@ export class GithubService {
         catchError(err => {
           this.error.set(err?.message || 'Error al cargar proyectos');
           this.loading.set(false);
-          return of([]);
+          return of(null);
         })
       )
       .subscribe(allRepos => {
+        if (!allRepos) {
+          return;
+        }
+
         const filtered = this.filterAndPrioritizeRepos(allRepos);
-        this.repos.set(filtered);
-        this.setCache('kforge_repos', filtered);
+        const normalized = this.normalizeRepoLiveDemos(filtered);
+        this.repos.set(normalized);
+        this.setCache(this.REPOS_CACHE_KEY, normalized);
         this.loading.set(false);
       });
   }
 
   fetchMembers(): void {
-    const cached = this.getCache<GithubMember[]>('kforge_members_enriched_v2');
-    if (cached) {
+    const cached = this.getCache<GithubMember[]>('kforge_members_enriched_v3');
+    if (cached && cached.length > 0) {
       this.members.set(this.sortMembersByRecentActivity(cached));
       this.membersLoading.set(false);
       return;
+    }
+
+    if (cached && cached.length === 0) {
+      sessionStorage.removeItem('kforge_members_enriched_v3');
     }
 
     this.membersLoading.set(true);
@@ -98,14 +112,26 @@ export class GithubService {
               return forkJoin(contributorsRequests).pipe(
                 switchMap(repoContributors => {
                   const projectsByMember = this.buildProjectsByMember(repoContributors);
-                  const activityRequests = members.map(member => this.fetchMemberLastCommitActivity(member.login, repos));
+                  const memberCommitDateRequests = members.map(member =>
+                    this.fetchMemberRepoLastCommitDates(member.login, repos)
+                  );
 
-                  return forkJoin(activityRequests).pipe(
-                    map(lastActivities => members.map((member, index) => ({
-                      ...member,
-                      projects: projectsByMember.get(member.login) || [],
-                      lastActivityAt: lastActivities[index],
-                    })))
+                  return forkJoin(memberCommitDateRequests).pipe(
+                    map(commitDatesByMember => members.map((member, index) => {
+                      const commitDatesByRepo = commitDatesByMember[index];
+                      const memberProjects = (projectsByMember.get(member.login) || []).map(project => ({
+                        ...project,
+                        lastActivityAt: commitDatesByRepo[project.repoName] || project.lastActivityAt,
+                      }));
+
+                      const sortedProjects = this.sortProjectsByRecentCommit(memberProjects).slice(0, 5);
+
+                      return {
+                        ...member,
+                        projects: sortedProjects,
+                        lastActivityAt: this.getMostRecentDate(Object.values(commitDatesByRepo)),
+                      };
+                    }))
                   );
                 })
               );
@@ -115,13 +141,17 @@ export class GithubService {
         catchError(err => {
           this.membersError.set(err?.message || 'Error al cargar equipo');
           this.membersLoading.set(false);
-          return of([]);
+          return of(null);
         })
       )
       .subscribe(data => {
+        if (!data) {
+          return;
+        }
+
         const sortedMembers = this.sortMembersByRecentActivity(data);
         this.members.set(sortedMembers);
-        this.setCache('kforge_members_enriched_v2', sortedMembers);
+        this.setCache('kforge_members_enriched_v3', sortedMembers);
         this.membersLoading.set(false);
       });
   }
@@ -142,7 +172,7 @@ export class GithubService {
       .pipe(catchError(() => of([])));
   }
 
-  private fetchMemberLastCommitActivity(login: string, repos: GithubRepo[]): Observable<string | null> {
+  private fetchMemberRepoLastCommitDates(login: string, repos: GithubRepo[]): Observable<Record<string, string | null>> {
     const commitDateRequests = repos.map(repo =>
       this.http
         .get<Array<{ commit?: { author?: { date?: string }; committer?: { date?: string } } }>>(
@@ -151,25 +181,23 @@ export class GithubService {
         .pipe(
           map(commits => {
             const first = commits[0];
-            return first?.commit?.author?.date || first?.commit?.committer?.date || null;
+            const date = first?.commit?.author?.date || first?.commit?.committer?.date || null;
+            return { repoName: repo.name, date };
           }),
-          catchError(() => of(null))
+          catchError(() => of({ repoName: repo.name, date: null }))
         )
     );
 
     if (!commitDateRequests.length) {
-      return of(null);
+      return of({});
     }
 
     return forkJoin(commitDateRequests).pipe(
-      map(dates => {
-        const sorted = dates
-          .filter((value): value is string => Boolean(value))
-          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-        return sorted[0] || null;
-      }),
-      catchError(() => of(null))
+      map(entries => entries.reduce<Record<string, string | null>>((accumulator, entry) => {
+        accumulator[entry.repoName] = entry.date;
+        return accumulator;
+      }, {})),
+      catchError(() => of({}))
     );
   }
 
@@ -189,19 +217,33 @@ export class GithubService {
           repoName: repo.name,
           repoUrl: repo.html_url,
           commits: contributor.contributions,
+          lastActivityAt: repo.updated_at,
         });
         projectsByMember.set(contributor.login, current);
       });
     });
 
     projectsByMember.forEach((projects, login) => {
-      projectsByMember.set(
-        login,
-        projects.sort((a, b) => b.commits - a.commits)
-      );
+      projectsByMember.set(login, projects);
     });
 
     return projectsByMember;
+  }
+
+  private sortProjectsByRecentCommit(projects: GithubMemberProject[]): GithubMemberProject[] {
+    return [...projects].sort((a, b) => {
+      const timeA = a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0;
+      const timeB = b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0;
+      return timeB - timeA;
+    });
+  }
+
+  private getMostRecentDate(dates: Array<string | null | undefined>): string | null {
+    const sorted = dates
+      .filter((value): value is string => Boolean(value))
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    return sorted[0] || null;
   }
 
   private filterAndPrioritizeRepos(repos: GithubRepo[]): GithubRepo[] {
@@ -227,6 +269,19 @@ export class GithubService {
     );
 
     return [...priorityRepos, ...otherRepos].slice(0, 8);
+  }
+
+  private normalizeRepoLiveDemos(repos: GithubRepo[]): GithubRepo[] {
+    return repos.map(repo => {
+      if (repo.name !== 'KForge-Home') {
+        return repo;
+      }
+
+      return {
+        ...repo,
+        homepage: 'https://kforge-home.vercel.app',
+      };
+    });
   }
 
   getLanguageColor(language: string | null): string {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, ElementRef, ViewChild, NgZone } from '@angular/core';
 import { GithubService } from '../../services/github.service';
 import { FadeInDirective } from '../../directives/fade-in.directive';
 import { I18nService } from '../../services/i18n.service';
@@ -67,73 +67,8 @@ import { I18nService } from '../../services/i18n.service';
         </svg>
       </div>
 
-      <!-- ═══ ANIMATED HAMMERS + SPARKS ═══ -->
-      <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-        <svg class="w-full h-full max-w-[600px] max-h-[600px] opacity-[0.18] md:opacity-[0.14]"
-             viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="hammer-left-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#A78BFA"/>
-              <stop offset="100%" stop-color="#6D28D9"/>
-            </linearGradient>
-            <linearGradient id="hammer-right-grad" x1="100%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#A78BFA"/>
-              <stop offset="100%" stop-color="#6D28D9"/>
-            </linearGradient>
-            <filter id="hammer-glow">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-            <filter id="big-spark-glow" x="-200%" y="-200%" width="500%" height="500%">
-              <feGaussianBlur stdDeviation="4"/>
-            </filter>
-          </defs>
-
-          <!-- LEFT HAMMER (swings from left) -->
-          <g class="hammer-left" filter="url(#hammer-glow)">
-            <!-- Handle -->
-            <rect x="80" y="190" width="90" height="12" rx="3" fill="url(#hammer-left-grad)" opacity="0.7"/>
-            <!-- Head -->
-            <rect x="50" y="172" width="38" height="48" rx="5" fill="url(#hammer-left-grad)" opacity="0.9"/>
-            <!-- Head highlight -->
-            <rect x="52" y="175" width="8" height="42" rx="3" fill="#C4B5FD" opacity="0.3"/>
-          </g>
-
-          <!-- RIGHT HAMMER (swings from right) -->
-          <g class="hammer-right" filter="url(#hammer-glow)">
-            <!-- Handle -->
-            <rect x="230" y="190" width="90" height="12" rx="3" fill="url(#hammer-right-grad)" opacity="0.7"/>
-            <!-- Head -->
-            <rect x="312" y="172" width="38" height="48" rx="5" fill="url(#hammer-right-grad)" opacity="0.9"/>
-            <!-- Head highlight -->
-            <rect x="340" y="175" width="8" height="42" rx="3" fill="#C4B5FD" opacity="0.3"/>
-          </g>
-
-          <!-- ═══ SPARK PARTICLES AT COLLISION POINT ═══ -->
-          <g class="sparks-group">
-            <!-- Central flash -->
-            <circle cx="200" cy="196" r="8" fill="#fbbf24" opacity="0" class="spark-flash"/>
-            <circle cx="200" cy="196" r="16" fill="#fbbf24" opacity="0" class="spark-flash-outer" filter="url(#big-spark-glow)"/>
-            
-            <!-- Spark particles flying outward -->
-            <circle cx="200" cy="196" r="2.5" fill="#fde68a" class="spark s1"/>
-            <circle cx="200" cy="196" r="2" fill="#fbbf24" class="spark s2"/>
-            <circle cx="200" cy="196" r="1.8" fill="#f59e0b" class="spark s3"/>
-            <circle cx="200" cy="196" r="2.2" fill="#fde68a" class="spark s4"/>
-            <circle cx="200" cy="196" r="1.5" fill="#fbbf24" class="spark s5"/>
-            <circle cx="200" cy="196" r="2" fill="#c084fc" class="spark s6"/>
-            <circle cx="200" cy="196" r="1.8" fill="#fde68a" class="spark s7"/>
-            <circle cx="200" cy="196" r="2.5" fill="#f59e0b" class="spark s8"/>
-            <circle cx="200" cy="196" r="1.5" fill="#c084fc" class="spark s9"/>
-            <circle cx="200" cy="196" r="2" fill="#fbbf24" class="spark s10"/>
-            <circle cx="200" cy="196" r="1.8" fill="#fde68a" class="spark s11"/>
-            <circle cx="200" cy="196" r="2.2" fill="#f59e0b" class="spark s12"/>
-          </g>
-        </svg>
-      </div>
+      <!-- ═══ ANIMATED HAMMERS + SPARKS (Canvas) ═══ -->
+      <canvas #hammerCanvas class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 1;"></canvas>
 
       <!-- ═══ GRAIN OVERLAY ═══ -->
       <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">
@@ -190,14 +125,31 @@ import { I18nService } from '../../services/i18n.service';
 
         <!-- Error -->
         @if (error()) {
-          <div class="text-center py-16">
-            <div class="text-red-400/80 text-lg mb-2">{{ i18n.t('projects.error') }}</div>
-            <p class="text-text-muted text-sm">{{ error() }}</p>
-            <button (click)="retry()" 
-                    class="mt-6 px-5 py-2.5 text-sm text-violet-primary border border-violet-primary/30 
-                           rounded-lg hover:bg-violet-primary/10 transition-colors">
-              {{ i18n.t('projects.retry') }}
-            </button>
+          <div class="max-w-2xl mx-auto text-center py-12 px-6 rounded-2xl bg-surface/70 border border-violet-primary/20 backdrop-blur-sm">
+            <div class="w-12 h-12 rounded-full bg-violet-primary/10 border border-violet-primary/30 mx-auto mb-4 flex items-center justify-center">
+              <svg class="w-6 h-6 text-violet-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 19h14.14c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.2 16c-.77 1.33.19 3 1.73 3z"/>
+              </svg>
+            </div>
+
+            <h3 class="text-xl font-semibold text-text-primary mb-2">{{ i18n.t('projects.errorTitle') }}</h3>
+            <p class="text-text-muted">{{ errorHint() }}</p>
+            <p class="text-text-muted/80 text-sm mt-2 break-words">{{ error() }}</p>
+
+            <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button (click)="retry()"
+                      class="px-5 py-2.5 text-sm text-violet-primary border border-violet-primary/30 rounded-lg hover:bg-violet-primary/10 transition-colors">
+                {{ i18n.t('projects.retry') }}
+              </button>
+
+              <a href="https://github.com/K-Forge" target="_blank" rel="noopener"
+                 class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg border border-violet-primary/40 bg-violet-primary/15 text-violet-glow hover:bg-violet-primary/25 transition-colors">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0110 4.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.165 20 14.418 20 10c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/>
+                </svg>
+                {{ i18n.t('projects.errorCta') }}
+              </a>
+            </div>
           </div>
         }
 
@@ -297,15 +249,26 @@ import { I18nService } from '../../services/i18n.service';
 
         <!-- CTA -->
         <div class="text-center mt-16" appFadeIn="up">
-          <a href="https://github.com/K-Forge" target="_blank" rel="noopener"
-             class="inline-flex items-center gap-2 px-6 py-3 border border-surface-light 
-                    text-text-muted font-medium rounded-xl hover:border-violet-primary/50 
-                    hover:text-violet-primary transition-all duration-300 text-sm">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0110 4.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.165 20 14.418 20 10c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/>
-            </svg>
-            {{ i18n.t('projects.viewMore') }}
-          </a>
+          @if (error()) {
+            <a href="https://github.com/K-Forge" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 px-6 py-3 border border-violet-primary/50 bg-violet-primary/15
+                      text-violet-glow font-semibold rounded-xl hover:bg-violet-primary/25 transition-all duration-300 text-sm shadow-[0_0_28px_rgba(139,92,246,0.22)]">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0110 4.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.165 20 14.418 20 10c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/>
+              </svg>
+              {{ i18n.t('projects.errorCta') }}
+            </a>
+          } @else {
+            <a href="https://github.com/K-Forge" target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 px-6 py-3 border border-surface-light 
+                      text-text-muted font-medium rounded-xl hover:border-violet-primary/50 
+                      hover:text-violet-primary transition-all duration-300 text-sm">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0110 4.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C17.137 18.165 20 14.418 20 10c0-5.523-4.477-10-10-10z" clip-rule="evenodd"/>
+              </svg>
+              {{ i18n.t('projects.viewMore') }}
+            </a>
+          }
         </div>
       </div>
     </section>
@@ -347,114 +310,360 @@ import { I18nService } from '../../services/i18n.service';
       50%      { fill: rgba(139,92,246, 0.45); r: 4; }
     }
 
-    /* ══════════════════════════════════════════
-       HAMMER SWING + COLLISION ANIMATION
-       Total cycle: 3s
-       0%-40%   hammers swing inward
-       40%-50%  IMPACT (hold + sparks)
-       50%-75%  hammers bounce back
-       75%-100% rest before repeat
-       ══════════════════════════════════════════ */
-
-    .hammer-left {
-      transform-origin: 170px 196px;
-      animation: swing-left 3s ease-in-out infinite;
-    }
-    .hammer-right {
-      transform-origin: 230px 196px;
-      animation: swing-right 3s ease-in-out infinite;
-    }
-
-    @keyframes swing-left {
-      0%   { transform: rotate(-35deg) translateX(-20px); }
-      40%  { transform: rotate(8deg) translateX(10px); }
-      50%  { transform: rotate(5deg) translateX(8px); }
-      75%  { transform: rotate(-35deg) translateX(-20px); }
-      100% { transform: rotate(-35deg) translateX(-20px); }
-    }
-
-    @keyframes swing-right {
-      0%   { transform: rotate(35deg) translateX(20px); }
-      40%  { transform: rotate(-8deg) translateX(-10px); }
-      50%  { transform: rotate(-5deg) translateX(-8px); }
-      75%  { transform: rotate(35deg) translateX(20px); }
-      100% { transform: rotate(35deg) translateX(20px); }
-    }
-
-    /* ── Central flash on impact ── */
-    .spark-flash {
-      animation: flash-core 3s ease-out infinite;
-    }
-    .spark-flash-outer {
-      animation: flash-outer 3s ease-out infinite;
-    }
-
-    @keyframes flash-core {
-      0%, 35%  { opacity: 0; r: 4; }
-      40%      { opacity: 1; r: 12; }
-      55%      { opacity: 0.3; r: 6; }
-      65%, 100% { opacity: 0; r: 4; }
-    }
-    @keyframes flash-outer {
-      0%, 35%  { opacity: 0; r: 8; }
-      40%      { opacity: 0.6; r: 28; }
-      55%      { opacity: 0.1; r: 14; }
-      65%, 100% { opacity: 0; r: 8; }
-    }
-
-    /* ── Spark Particles ── */
-    .spark {
-      opacity: 0;
-    }
-    .s1  { animation: spark-fly 3s ease-out infinite; --sx: -40px; --sy: -50px; }
-    .s2  { animation: spark-fly 3s ease-out infinite; --sx: 35px;  --sy: -45px; }
-    .s3  { animation: spark-fly 3s ease-out infinite; --sx: -50px; --sy: -20px; }
-    .s4  { animation: spark-fly 3s ease-out infinite; --sx: 55px;  --sy: -25px; }
-    .s5  { animation: spark-fly 3s ease-out infinite; --sx: -30px; --sy: -60px; }
-    .s6  { animation: spark-fly 3s ease-out infinite; --sx: 45px;  --sy: -55px; }
-    .s7  { animation: spark-fly 3s ease-out infinite; --sx: -60px; --sy: 10px; }
-    .s8  { animation: spark-fly 3s ease-out infinite; --sx: 60px;  --sy: 5px; }
-    .s9  { animation: spark-fly 3s ease-out infinite; --sx: -20px; --sy: -65px; }
-    .s10 { animation: spark-fly 3s ease-out infinite; --sx: 25px;  --sy: 15px; }
-    .s11 { animation: spark-fly 3s ease-out infinite; --sx: -55px; --sy: -35px; }
-    .s12 { animation: spark-fly 3s ease-out infinite; --sx: 50px;  --sy: -40px; }
-
-    @keyframes spark-fly {
-      0%, 38% {
-        opacity: 0;
-        transform: translate(0, 0) scale(1);
-      }
-      42% {
-        opacity: 1;
-        transform: translate(0, 0) scale(1.3);
-      }
-      70% {
-        opacity: 0.6;
-        transform: translate(var(--sx), var(--sy)) scale(0.8);
-      }
-      85%, 100% {
-        opacity: 0;
-        transform: translate(calc(var(--sx) * 1.5), calc(var(--sy) * 1.5)) scale(0);
-      }
-    }
   `]
 })
-export class ProjectsComponent implements OnInit {
+export class ProjectsComponent implements OnInit, AfterViewInit, OnDestroy {
   i18n = inject(I18nService);
   githubService = inject(GithubService);
+  private ngZone = inject(NgZone);
 
+  @ViewChild('hammerCanvas', { static: false }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
   repos = this.githubService.repos;
   loading = this.githubService.loading;
   error = this.githubService.error;
-
   skeletons = Array.from({ length: 4 });
+
+  private animId = 0;
+  private hammerPairs: HammerPair[] = [];
 
   ngOnInit(): void {
     this.githubService.fetchRepos();
   }
 
+  ngAfterViewInit(): void {
+    this.ngZone.runOutsideAngular(() => this.initCanvas());
+  }
+
+  ngOnDestroy(): void {
+    cancelAnimationFrame(this.animId);
+  }
+
   retry(): void {
     this.githubService.fetchRepos();
   }
+
+  errorHint(): string {
+    const currentError = this.error();
+    if (!currentError) return this.i18n.t('projects.errorUnavailable');
+
+    const rateLimitPattern = /(403|rate limit|api rate limit exceeded)/i;
+    return rateLimitPattern.test(currentError)
+      ? this.i18n.t('projects.errorRateLimit')
+      : this.i18n.t('projects.errorUnavailable');
+  }
+
+  private initCanvas(): void {
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    if (!ctx) return;
+
+    const resize = () => {
+      const rect = canvas.parentElement!.getBoundingClientRect();
+      canvas.width = rect.width * devicePixelRatio;
+      canvas.height = rect.height * devicePixelRatio;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const W = () => canvas.width / devicePixelRatio;
+    const H = () => canvas.height / devicePixelRatio;
+
+    // Single hammer pair
+    this.hammerPairs = [createHammerPair(W(), H(), 0)];
+
+    const loop = () => {
+      const w = W(), h = H();
+      ctx.clearRect(0, 0, w, h);
+
+      for (const pair of this.hammerPairs) {
+        updateHammerPair(pair, w, h);
+        drawHammerPair(ctx, pair);
+      }
+
+      this.animId = requestAnimationFrame(loop);
+    };
+    this.animId = requestAnimationFrame(loop);
+  }
+}
+
+/* ═══ DATA STRUCTURES ═══ */
+interface Spark {
+  x: number; y: number;
+  vx: number; vy: number;
+  life: number; maxLife: number;
+  size: number;
+  color: string;
+}
+
+interface HammerPair {
+  cx: number; cy: number;       // collision point
+  phase: number;                 // 0..1 lifecycle
+  speed: number;                 // phase increment per frame
+  scale: number;
+  sparks: Spark[];
+  flashAlpha: number;
+  flashRadius: number;
+  spawned: boolean;              // whether sparks were spawned this cycle
+}
+
+/*
+  LIFECYCLE (phase 0→1)  ~3s total at 60fps ≈ 180 frames
+  0.00–0.15  fade in slowly, hammers apart
+  0.15–0.42  hammers glide inward (heads approaching)
+  0.42–0.48  IMPACT — heads collide, spark burst
+  0.48–0.65  gentle bounce back + sparks
+  0.65–0.82  fade out slowly
+  0.82–1.00  invisible pause → teleport to new position
+*/
+
+const SPARK_COLORS = ['#fde68a', '#fbbf24', '#f59e0b', '#c084fc', '#a78bfa', '#fff7ed'];
+
+function rand(min: number, max: number) { return Math.random() * (max - min) + min; }
+
+// ~3s cycle: 1/180 ≈ 0.0056 per frame
+function createHammerPair(w: number, h: number, _index: number): HammerPair {
+  const margin = 160;
+  return {
+    cx: rand(margin, w - margin),
+    cy: rand(margin, h - margin),
+    phase: 0,
+    speed: 1 / 180,  // exactly ~3 seconds at 60fps
+    scale: rand(1.1, 1.5),
+    sparks: [],
+    flashAlpha: 0,
+    flashRadius: 0,
+    spawned: false,
+  };
+}
+
+function teleportPair(p: HammerPair, w: number, h: number): void {
+  const margin = 160;
+  p.cx = rand(margin, w - margin);
+  p.cy = rand(margin, h - margin);
+  p.scale = rand(1.1, 1.5);
+  p.spawned = false;
+}
+
+function updateHammerPair(p: HammerPair, w: number, h: number): void {
+  p.phase += p.speed;
+  if (p.phase >= 1) {
+    p.phase -= 1;
+    teleportPair(p, w, h);
+  }
+
+  // Spawn sparks at impact (phase ~0.42)
+  if (p.phase >= 0.42 && p.phase < 0.48 && !p.spawned) {
+    p.spawned = true;
+    for (let i = 0; i < 14; i++) {
+      const angle = rand(0, Math.PI * 2);
+      const spd = rand(2, 6.5);
+      p.sparks.push({
+        x: p.cx, y: p.cy,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - rand(0.5, 2.5),
+        life: 1,
+        maxLife: rand(0.4, 1),
+        size: rand(1.5, 4.5),
+        color: SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)],
+      });
+    }
+    p.flashAlpha = 1;
+    p.flashRadius = 8 * p.scale;
+  }
+
+  // Update sparks
+  for (let i = p.sparks.length - 1; i >= 0; i--) {
+    const s = p.sparks[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vy += 0.08;   // gravity
+    s.vx *= 0.98;
+    s.life -= 0.022 / s.maxLife;
+    if (s.life <= 0) p.sparks.splice(i, 1);
+  }
+
+  // Decay flash
+  if (p.flashAlpha > 0) {
+    p.flashAlpha *= 0.85;
+    p.flashRadius += 2;
+    if (p.flashAlpha < 0.01) p.flashAlpha = 0;
+  }
+}
+
+function drawHammerPair(ctx: CanvasRenderingContext2D, p: HammerPair): void {
+  const { cx, cy, phase, scale: s } = p;
+
+  // Slow fade in/out: 0–0.15 in, 0.15–0.65 full, 0.65–0.82 out, 0.82–1 invisible
+  let alpha: number;
+  if (phase < 0.15) {
+    alpha = phase / 0.15;
+    alpha = alpha * alpha; // ease-in (slow start)
+  } else if (phase < 0.65) {
+    alpha = 1;
+  } else if (phase < 0.82) {
+    const t = 1 - (phase - 0.65) / 0.17;
+    alpha = t * t; // ease-out (slow end)
+  } else {
+    alpha = 0;
+  }
+  alpha *= 0.45; // overall subtlety
+
+  if (alpha < 0.005 && p.sparks.length === 0 && p.flashAlpha < 0.01) return;
+
+  // Gap between heads: large → 0 at impact → bounces back
+  const HEAD_W = 26 * s;
+  const HANDLE_W = 60 * s;
+  let gap: number;     // distance from center to each head's inner face
+  let swingAngle: number;
+
+  if (phase < 0.15) {
+    // Fade in — spread apart
+    gap = (70 + 15 * (1 - phase / 0.15)) * s;
+    swingAngle = -12;
+  } else if (phase < 0.42) {
+    // Approach — heads glide toward each other (smooth)
+    const t = (phase - 0.15) / 0.27;
+    const ease = t * t * (3 - 2 * t);
+    gap = (70 - 70 * ease) * s;
+    swingAngle = -12 + 17 * ease;
+  } else if (phase < 0.48) {
+    // Impact — heads touching
+    gap = 0;
+    swingAngle = 5;
+  } else if (phase < 0.65) {
+    // Bounce back gently
+    const t = (phase - 0.48) / 0.17;
+    const ease = t * t;
+    gap = 45 * ease * s;
+    swingAngle = 5 - 17 * ease;
+  } else {
+    // Holding apart, fading
+    gap = 45 * s;
+    swingAngle = -12;
+  }
+
+  ctx.save();
+
+  // ── Draw left hammer (head on RIGHT side, facing center) ──
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx - gap - HEAD_W, cy);
+  ctx.rotate((swingAngle * Math.PI) / 180);
+  drawHammer(ctx, s, 'right'); // head faces right (toward center)
+  ctx.restore();
+
+  // ── Draw right hammer (head on LEFT side, facing center) ──
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx + gap + HEAD_W, cy);
+  ctx.rotate((-swingAngle * Math.PI) / 180);
+  drawHammer(ctx, s, 'left'); // head faces left (toward center)
+  ctx.restore();
+
+  // ── Draw flash ──
+  if (p.flashAlpha > 0.01) {
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, p.flashRadius);
+    grad.addColorStop(0, `rgba(251, 191, 36, ${p.flashAlpha})`);
+    grad.addColorStop(0.3, `rgba(245, 158, 11, ${p.flashAlpha * 0.7})`);
+    grad.addColorStop(0.6, `rgba(139, 92, 246, ${p.flashAlpha * 0.3})`);
+    grad.addColorStop(1, 'rgba(139, 92, 246, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, p.flashRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ── Draw sparks ──
+  for (const sp of p.sparks) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(sp.life * 0.95, 1);
+    ctx.shadowColor = sp.color;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = sp.color;
+    ctx.beginPath();
+    ctx.arc(sp.x, sp.y, sp.size * Math.max(sp.life, 0.2), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Draw a single hammer at origin.
+ * headDir: 'left' = head on left, handle on right.
+ *          'right' = head on right, handle on left.
+ */
+function drawHammer(ctx: CanvasRenderingContext2D, s: number, headDir: 'left' | 'right'): void {
+  const handleW = 60 * s, handleH = 8 * s;
+  const headW = 26 * s, headH = 36 * s;
+
+  ctx.shadowColor = '#8B5CF6';
+  ctx.shadowBlur = 14;
+
+  const isRight = headDir === 'right';
+
+  // Handle: extends away from center (opposite side of head)
+  const hGrad = ctx.createLinearGradient(
+    isRight ? -handleW : 0, 0,
+    isRight ? 0 : handleW, 0
+  );
+  hGrad.addColorStop(0, '#7C3AED');
+  hGrad.addColorStop(1, '#A78BFA');
+  ctx.fillStyle = hGrad;
+  ctx.beginPath();
+  roundRect(ctx,
+    isRight ? -handleW : 0,
+    -handleH / 2,
+    handleW, handleH, 3 * s
+  );
+  ctx.fill();
+
+  // Head: on the specified side
+  const headGrad = ctx.createLinearGradient(
+    isRight ? 0 : -headW, -headH / 2,
+    isRight ? headW : 0, headH / 2
+  );
+  headGrad.addColorStop(0, '#C4B5FD');
+  headGrad.addColorStop(0.4, '#8B5CF6');
+  headGrad.addColorStop(1, '#5B21B6');
+  ctx.fillStyle = headGrad;
+  ctx.beginPath();
+  roundRect(ctx,
+    isRight ? -2 * s : -headW + 2 * s,
+    -headH / 2,
+    headW, headH, 5 * s
+  );
+  ctx.fill();
+
+  // Head shine
+  ctx.fillStyle = 'rgba(196, 181, 253, 0.3)';
+  ctx.beginPath();
+  roundRect(ctx,
+    isRight ? headW - 7 * s : -headW + 3 * s,
+    -headH / 2 + 4 * s,
+    4 * s, headH - 8 * s, 2 * s
+  );
+  ctx.fill();
+
+  ctx.shadowBlur = 0;
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
 }
