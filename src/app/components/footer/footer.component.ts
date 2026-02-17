@@ -23,14 +23,15 @@ import { GithubIconComponent } from '../../shared/github-icon.component';
 
           <!-- Contact -->
           <div class="flex items-center gap-4">
-            <a href="mailto:kforge.dev&#64;gmail.com"
-               class="inline-flex items-center gap-2 text-sm text-text-muted hover:text-violet-primary transition-colors">
+            <button (click)="openEmail()"
+               class="inline-flex items-center gap-2 text-sm text-text-muted hover:text-violet-primary transition-colors cursor-pointer outline-none group"
+               [title]="i18n.t('footer.contact')">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
-              kforge.dev&#64;gmail.com
-            </a>
+              <span class="reversed-email group-hover:text-violet-primary">moc.liamg&#64;ved.egrofk</span>
+            </button>
             <a href="https://github.com/K-Forge" target="_blank" rel="noopener"
                class="inline-flex items-center gap-2 text-sm text-text-muted hover:text-violet-primary transition-colors">
               <github-icon [size]="16" />
@@ -60,9 +61,20 @@ import { GithubIconComponent } from '../../shared/github-icon.component';
       </div>
     </footer>
   `,
-  styles: []
+  styles: [`
+    .reversed-email {
+      unicode-bidi: bidi-override;
+      direction: rtl;
+    }
+  `]
 })
 export class FooterComponent {
   readonly i18n = inject(I18nService);
   readonly currentYear = new Date().getFullYear();
+
+  openEmail(): void {
+    const user = 'kforge.dev';
+    const domain = 'gmail.com';
+    window.location.href = `mailto:${user}@${domain}`;
+  }
 }
