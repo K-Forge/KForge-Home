@@ -1,24 +1,32 @@
-import { Component, signal, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
+import {
+  Component, signal, inject, NgZone,
+  OnInit, OnDestroy, afterNextRender, ChangeDetectionStrategy,
+} from '@angular/core';
 import { HeroComponent } from './components/hero/hero.component';
 import { AboutComponent } from './components/about/about.component';
+import { FooterComponent } from './components/footer/footer.component';
 import { ProjectsComponent } from './components/projects/projects.component';
 import { TeamComponent } from './components/team/team.component';
 import { ContactComponent } from './components/contact/contact.component';
-import { FooterComponent } from './components/footer/footer.component';
 import { I18nService } from './services/i18n.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [HeroComponent, AboutComponent, ProjectsComponent, TeamComponent, ContactComponent, FooterComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [
+    HeroComponent, AboutComponent, FooterComponent,
+    ProjectsComponent, TeamComponent, ContactComponent,
+  ],
   template: `
     <div class="min-h-screen bg-midnight">
-      <!-- Header -->
+
+      <!-- ═══ HEADER ═══ -->
       <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-              [class.bg-midnight/90]="scrolled()"
-              [class.backdrop-blur-md]="scrolled()"
-              [class.border-b]="scrolled()"
-              [class.border-surface-light]="scrolled()">
+              [class.bg-midnight/95]="isScrolled()"
+              [class.md:backdrop-blur-md]="isScrolled()"
+              [class.border-b]="isScrolled()"
+              [class.border-surface-light]="isScrolled()">
         <nav class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <a href="#home" class="text-xl font-bold text-text-primary">
             K-<span class="text-violet-primary">FORGE</span>
@@ -42,9 +50,8 @@ import { I18nService } from './services/i18n.service';
 
           <!-- Language Toggle + Mobile Button -->
           <div class="flex items-center gap-3">
-            <!-- Language Toggle -->
             <button (click)="i18n.toggleLang()"
-                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg 
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
                            border border-surface-light text-text-muted
                            hover:border-violet-primary/40 hover:text-violet-primary transition-all duration-300"
                     [attr.aria-label]="i18n.lang() === 'es' ? 'Switch to English' : 'Cambiar a Español'">
@@ -55,11 +62,10 @@ import { I18nService } from './services/i18n.service';
               {{ i18n.lang() === 'es' ? 'EN' : 'ES' }}
             </button>
 
-            <!-- Mobile Menu Button -->
             <button class="md:hidden text-text-muted hover:text-violet-primary transition-colors"
-                    (click)="menuOpen.set(!menuOpen())"
-                    [attr.aria-label]="menuOpen() ? 'Cerrar menú' : 'Abrir menú'">
-              @if (menuOpen()) {
+                    (click)="isMenuOpen.set(!isMenuOpen())"
+                    [attr.aria-label]="isMenuOpen() ? 'Cerrar menú' : 'Abrir menú'">
+              @if (isMenuOpen()) {
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -73,11 +79,11 @@ import { I18nService } from './services/i18n.service';
         </nav>
 
         <!-- Mobile Menu -->
-        @if (menuOpen()) {
-          <div class="md:hidden bg-midnight/95 backdrop-blur-lg border-t border-surface-light animate-fade-in">
+        @if (isMenuOpen()) {
+          <div class="md:hidden bg-midnight/95 border-t border-surface-light animate-fade-in">
             <div class="flex flex-col items-center gap-4 py-6">
               @for (link of navLinks; track link.id) {
-                <a [href]="'#' + link.id" (click)="menuOpen.set(false)"
+                <a [href]="'#' + link.id" (click)="isMenuOpen.set(false)"
                    class="relative text-lg font-medium transition-colors px-4 py-1"
                    [class.text-violet-primary]="activeSection() === link.id"
                    [class.text-text-muted]="activeSection() !== link.id">
@@ -92,13 +98,29 @@ import { I18nService } from './services/i18n.service';
         }
       </header>
 
-      <!-- Main Content -->
+      <!-- ═══ MAIN CONTENT ═══ -->
       <main id="home" class="pt-16">
         <app-hero />
         <app-about />
-        <app-projects />
-        <app-team />
-        <app-contact />
+
+        <!-- Defer heavy components until near viewport -->
+        @defer (on viewport) {
+          <app-projects />
+        } @placeholder {
+          <section id="projects" class="min-h-screen bg-midnight"></section>
+        }
+
+        @defer (on viewport) {
+          <app-team />
+        } @placeholder {
+          <section id="team" class="min-h-screen bg-surface"></section>
+        }
+
+        @defer (on viewport) {
+          <app-contact />
+        } @placeholder {
+          <section id="contact" class="min-h-screen bg-midnight"></section>
+        }
       </main>
 
       <app-footer />
@@ -107,43 +129,75 @@ import { I18nService } from './services/i18n.service';
   styles: []
 })
 export class App implements OnInit, OnDestroy {
-  i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
+  private readonly ngZone = inject(NgZone);
 
-  menuOpen = signal(false);
-  scrolled = signal(false);
-  activeSection = signal('home');
+  /** UI state */
+  readonly isMenuOpen = signal(false);
+  readonly isScrolled = signal(false);
+  readonly activeSection = signal('home');
 
+  /** Navigation links config */
   readonly navLinks = [
     { id: 'home', key: 'nav.home' },
     { id: 'about', key: 'nav.about' },
     { id: 'projects', key: 'nav.projects' },
     { id: 'team', key: 'nav.team' },
     { id: 'contact', key: 'nav.contact' },
-  ];
+  ] as const;
 
-  private observer?: IntersectionObserver;
+  private sectionObserver?: IntersectionObserver;
+  private scrollCleanup?: () => void;
+
+  constructor() {
+    // Wait for DOM to be ready before observing sections
+    afterNextRender(() => this.setupSectionObserver());
+  }
 
   ngOnInit(): void {
-    this.setupSectionObserver();
+    this.setupThrottledScroll();
   }
 
   ngOnDestroy(): void {
-    this.observer?.disconnect();
+    this.sectionObserver?.disconnect();
+    this.scrollCleanup?.();
   }
 
-  @HostListener('window:scroll')
-  onScroll(): void {
-    this.scrolled.set(window.scrollY > 50);
+  /**
+   * Throttled scroll handler that runs outside Angular zone
+   * to avoid triggering change detection on every scroll frame.
+   * Uses rAF gating so it fires at most once per animation frame.
+   */
+  private setupThrottledScroll(): void {
+    let ticking = false;
 
-    if (window.scrollY <= 10 && this.activeSection() !== 'home') {
-      this.activeSection.set('home');
-    }
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+
+      requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        this.isScrolled.set(scrollY > 50);
+
+        if (scrollY <= 10 && this.activeSection() !== 'home') {
+          this.activeSection.set('home');
+        }
+        ticking = false;
+      });
+    };
+
+    this.ngZone.runOutsideAngular(() => {
+      window.addEventListener('scroll', onScroll, { passive: true });
+    });
+
+    this.scrollCleanup = () => window.removeEventListener('scroll', onScroll);
   }
 
+  /** Observes each section to highlight the active nav link */
   private setupSectionObserver(): void {
-    const ids = ['home', 'about', 'projects', 'team', 'contact'];
+    const sectionIds = ['home', 'about', 'projects', 'team', 'contact'];
 
-    this.observer = new IntersectionObserver(
+    this.sectionObserver = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
@@ -154,12 +208,9 @@ export class App implements OnInit, OnDestroy {
       { rootMargin: '-40% 0px -55% 0px' }
     );
 
-    // Delayed to let Angular render sections
-    setTimeout(() => {
-      for (const id of ids) {
-        const el = document.getElementById(id);
-        if (el) this.observer!.observe(el);
-      }
-    }, 100);
+    for (const id of sectionIds) {
+      const el = document.getElementById(id);
+      if (el) this.sectionObserver.observe(el);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Directive, ElementRef, OnInit, OnDestroy, Input } from '@angular/core';
+import { Directive, ElementRef, OnInit, OnDestroy, Input, inject } from '@angular/core';
 
 @Directive({
     selector: '[appFadeIn]',
@@ -8,9 +8,8 @@ export class FadeInDirective implements OnInit, OnDestroy {
     @Input() appFadeIn: 'up' | 'left' | 'right' = 'up';
     @Input() fadeDelay = 0;
 
+    private readonly el = inject(ElementRef<HTMLElement>);
     private observer?: IntersectionObserver;
-
-    constructor(private el: ElementRef<HTMLElement>) { }
 
     ngOnInit(): void {
         const element = this.el.nativeElement;

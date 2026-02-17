@@ -1,25 +1,21 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FadeInDirective } from '../../directives/fade-in.directive';
+import { SectionHeaderComponent } from '../../shared/section-header.component';
 import { I18nService } from '../../services/i18n.service';
 
 @Component({
   selector: 'app-about',
   standalone: true,
-  imports: [FadeInDirective],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FadeInDirective, SectionHeaderComponent],
   template: `
     <section id="about" class="about-people-bg relative px-6 py-10 md:py-14 bg-surface flex items-center overflow-hidden">
       <div class="max-w-5xl mx-auto w-full">
 
         <!-- Section Header -->
-        <div class="text-center mb-8 md:mb-10" appFadeIn="up">
-          <h2 class="text-4xl md:text-5xl font-bold mb-4 text-text-primary">
-            <span class="text-violet-primary">{{ i18n.t('about.title') }}</span>
-          </h2>
-          <div class="h-1 w-16 bg-violet-primary mx-auto mb-3 rounded-full"></div>
-          <p class="text-lg text-text-muted max-w-2xl mx-auto">
-            {{ i18n.t('about.subtitle') }}
-          </p>
-        </div>
+        <app-section-header
+          [title]="i18n.t('about.title')"
+          [subtitle]="i18n.t('about.subtitle')" />
 
         <!-- Forge Path: vertical timeline -->
         <div class="forge-path relative">
@@ -205,5 +201,5 @@ import { I18nService } from '../../services/i18n.service';
   `]
 })
 export class AboutComponent {
-  i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
 }

@@ -1,35 +1,53 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { retry, catchError, map, switchMap } from 'rxjs/operators';
 import { of, forkJoin, Observable } from 'rxjs';
 import { GithubRepo } from '../models/github-repo.interface';
 import { GithubMember, GithubMemberProject } from '../models/github-member.interface';
+import { I18nService } from './i18n.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GithubService {
-  private readonly ORG = 'K-Forge';
+
+  // ── Configuration ──────────────────────────────────────────────
+  private readonly GITHUB_ORG = 'K-Forge';
   private readonly API_BASE = 'https://api.github.com';
   private readonly PRIORITY_REPOS = ['K-APP', 'Gretta', 'Tienda-K', 'KomidaGPT'];
   private readonly REPOS_CACHE_KEY = 'kforge_repos_v2';
+  private readonly MEMBERS_CACHE_KEY = 'kforge_members_enriched_v3';
   private readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-  // Repos state
+  private readonly http = inject(HttpClient);
+  private readonly i18n = inject(I18nService);
+
+  // ── Repos state (signals) ─────────────────────────────────────
   readonly repos = signal<GithubRepo[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
-  // Members state
+  // ── Members state (signals) ───────────────────────────────────
   readonly members = signal<GithubMember[]>([]);
   readonly membersLoading = signal(true);
   readonly membersError = signal<string | null>(null);
 
-  constructor(private http: HttpClient) { }
-
   private get orgReposUrl(): string {
-    return `${this.API_BASE}/orgs/${this.ORG}/repos?per_page=100&sort=updated`;
+    return `${this.API_BASE}/orgs/${this.GITHUB_ORG}/repos?per_page=100&sort=updated`;
   }
+
+  // ── Public helpers ────────────────────────────────────────────
+
+  /** Returns a user-facing hint based on the error message and section context. */
+  getErrorHint(errorMessage: string | null, section: 'projects' | 'team'): string {
+    const isRateLimit = /(403|rate limit|api rate limit exceeded)/i.test(errorMessage ?? '');
+    const key = isRateLimit
+      ? `${section}.errorRateLimit`
+      : `${section}.errorUnavailable`;
+    return this.i18n.t(key);
+  }
+
+  // ── Repos fetching ────────────────────────────────────────────
 
   fetchRepos(): void {
     const cached = this.getCache<GithubRepo[]>(this.REPOS_CACHE_KEY);
@@ -46,7 +64,7 @@ export class GithubService {
     this.loading.set(true);
     this.error.set(null);
 
-    this.http.get<GithubRepo[]>(`${this.API_BASE}/orgs/${this.ORG}/repos?per_page=30&sort=updated`)
+    this.http.get<GithubRepo[]>(`${this.API_BASE}/orgs/${this.GITHUB_ORG}/repos?per_page=30&sort=updated`)
       .pipe(
         retry(2),
         catchError(err => {
@@ -68,8 +86,10 @@ export class GithubService {
       });
   }
 
+  // ── Members fetching ──────────────────────────────────────────
+
   fetchMembers(): void {
-    const cached = this.getCache<GithubMember[]>('kforge_members_enriched_v3');
+    const cached = this.getCache<GithubMember[]>(this.MEMBERS_CACHE_KEY);
     if (cached && cached.length > 0) {
       this.members.set(this.sortMembersByRecentActivity(cached));
       this.membersLoading.set(false);
@@ -77,13 +97,13 @@ export class GithubService {
     }
 
     if (cached && cached.length === 0) {
-      sessionStorage.removeItem('kforge_members_enriched_v3');
+      sessionStorage.removeItem(this.MEMBERS_CACHE_KEY);
     }
 
     this.membersLoading.set(true);
     this.membersError.set(null);
 
-    this.http.get<GithubMember[]>(`${this.API_BASE}/orgs/${this.ORG}/members?per_page=20`)
+    this.http.get<GithubMember[]>(`${this.API_BASE}/orgs/${this.GITHUB_ORG}/members?per_page=20`)
       .pipe(
         retry(2),
         switchMap(members => {
@@ -151,7 +171,7 @@ export class GithubService {
 
         const sortedMembers = this.sortMembersByRecentActivity(data);
         this.members.set(sortedMembers);
-        this.setCache('kforge_members_enriched_v3', sortedMembers);
+        this.setCache(this.MEMBERS_CACHE_KEY, sortedMembers);
         this.membersLoading.set(false);
       });
   }
@@ -167,7 +187,7 @@ export class GithubService {
   private fetchRepoContributors(repoName: string): Observable<Array<{ login: string; contributions: number }>> {
     return this.http
       .get<Array<{ login: string; contributions: number }>>(
-        `${this.API_BASE}/repos/${this.ORG}/${repoName}/contributors?per_page=100`
+        `${this.API_BASE}/repos/${this.GITHUB_ORG}/${repoName}/contributors?per_page=100`
       )
       .pipe(catchError(() => of([])));
   }
@@ -176,7 +196,7 @@ export class GithubService {
     const commitDateRequests = repos.map(repo =>
       this.http
         .get<Array<{ commit?: { author?: { date?: string }; committer?: { date?: string } } }>>(
-          `${this.API_BASE}/repos/${this.ORG}/${repo.name}/commits?author=${login}&per_page=1`
+          `${this.API_BASE}/repos/${this.GITHUB_ORG}/${repo.name}/commits?author=${login}&per_page=1`
         )
         .pipe(
           map(commits => {
@@ -223,10 +243,6 @@ export class GithubService {
       });
     });
 
-    projectsByMember.forEach((projects, login) => {
-      projectsByMember.set(login, projects);
-    });
-
     return projectsByMember;
   }
 
@@ -245,6 +261,8 @@ export class GithubService {
 
     return sorted[0] || null;
   }
+
+  // ── Repo helpers ──────────────────────────────────────────────
 
   private filterAndPrioritizeRepos(repos: GithubRepo[]): GithubRepo[] {
     const priorityRepos: GithubRepo[] = [];
@@ -284,6 +302,8 @@ export class GithubService {
     });
   }
 
+  // ── Language color map ────────────────────────────────────────
+
   getLanguageColor(language: string | null): string {
     const colors: Record<string, string> = {
       'JavaScript': '#f1e05a',
@@ -306,7 +326,8 @@ export class GithubService {
     return colors[language || ''] || '#8B5CF6';
   }
 
-  // Cache helpers
+  // ── Cache helpers ─────────────────────────────────────────────
+
   private setCache<T>(key: string, data: T): void {
     try {
       sessionStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));

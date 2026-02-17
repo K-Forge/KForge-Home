@@ -1,27 +1,23 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { FadeInDirective } from '../../directives/fade-in.directive';
+import { SectionHeaderComponent } from '../../shared/section-header.component';
 import { I18nService } from '../../services/i18n.service';
 
 type FormState = 'idle' | 'sending' | 'success' | 'error';
 
 @Component({
-    selector: 'app-contact',
-    standalone: true,
-    imports: [FormsModule, FadeInDirective],
-    template: `
+  selector: 'app-contact',
+  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule, FadeInDirective, SectionHeaderComponent],
+  template: `
     <section id="contact" class="relative px-6 py-20 md:py-24 bg-midnight min-h-screen flex items-center">
       <div class="max-w-2xl mx-auto w-full">
         <!-- Section Header -->
-        <div class="text-center mb-12" appFadeIn="up">
-          <h2 class="text-4xl md:text-5xl font-bold mb-4 text-text-primary">
-            <span class="text-violet-primary">{{ i18n.t('contact.title') }}</span>
-          </h2>
-          <div class="h-1 w-16 bg-violet-primary mx-auto mb-6 rounded-full"></div>
-          <p class="text-lg text-text-muted max-w-xl mx-auto">
-            {{ i18n.t('contact.subtitle') }}
-          </p>
-        </div>
+        <app-section-header
+          [title]="i18n.t('contact.title')"
+          [subtitle]="i18n.t('contact.subtitle')" />
 
         <!-- Form Container -->
         <div class="relative p-8 md:p-10 rounded-2xl bg-surface border border-surface-light"
@@ -131,62 +127,62 @@ type FormState = 'idle' | 'sending' | 'success' | 'error';
       </div>
     </section>
   `,
-    styles: []
+  styles: []
 })
 export class ContactComponent {
-    i18n = inject(I18nService);
+  readonly i18n = inject(I18nService);
 
-    // You can change this to K-FORGE's actual email
-    private readonly DESTINATION_EMAIL = 'kforge.dev@gmail.com';
+  // You can change this to K-FORGE's actual email
+  private readonly DESTINATION_EMAIL = 'kforge.dev@gmail.com';
 
-    formState = signal<FormState>('idle');
+  formState = signal<FormState>('idle');
 
-    name = '';
-    email = '';
-    message = '';
+  name = '';
+  email = '';
+  message = '';
 
-    async onSubmit(event: Event): Promise<void> {
-        event.preventDefault();
+  async onSubmit(event: Event): Promise<void> {
+    event.preventDefault();
 
-        if (!this.name.trim() || !this.email.trim() || !this.message.trim()) return;
+    if (!this.name.trim() || !this.email.trim() || !this.message.trim()) return;
 
-        this.formState.set('sending');
+    this.formState.set('sending');
 
-        const formData = new FormData();
-        formData.append('name', this.name.trim());
-        formData.append('email', this.email.trim());
-        formData.append('message', this.message.trim());
-        formData.append('_captcha', 'false');
-        formData.append('_template', 'table');
-        formData.append('_subject', `K-FORGE: Nuevo mensaje de ${this.name.trim()}`);
-        formData.append('_autoresponse',
-            `¡Hola ${this.name.trim()}! Hemos recibido tu mensaje en K-FORGE. Te responderemos pronto. 🔥`
-        );
+    const formData = new FormData();
+    formData.append('name', this.name.trim());
+    formData.append('email', this.email.trim());
+    formData.append('message', this.message.trim());
+    formData.append('_captcha', 'false');
+    formData.append('_template', 'table');
+    formData.append('_subject', `K-FORGE: Nuevo mensaje de ${this.name.trim()}`);
+    formData.append('_autoresponse',
+      `¡Hola ${this.name.trim()}! Hemos recibido tu mensaje en K-FORGE. Te responderemos pronto. 🔥`
+    );
 
-        try {
-            const response = await fetch(
-                `https://formsubmit.co/ajax/${this.DESTINATION_EMAIL}`,
-                {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'Accept': 'application/json' },
-                }
-            );
-
-            if (response.ok) {
-                this.formState.set('success');
-            } else {
-                throw new Error('Send failed');
-            }
-        } catch {
-            this.formState.set('error');
+    try {
+      const response = await fetch(
+        `https://formsubmit.co/ajax/${this.DESTINATION_EMAIL}`,
+        {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' },
         }
-    }
+      );
 
-    resetForm(): void {
-        this.name = '';
-        this.email = '';
-        this.message = '';
-        this.formState.set('idle');
+      if (response.ok) {
+        this.formState.set('success');
+      } else {
+        throw new Error('Send failed');
+      }
+    } catch {
+      this.formState.set('error');
     }
+  }
+
+  resetForm(): void {
+    this.name = '';
+    this.email = '';
+    this.message = '';
+    this.formState.set('idle');
+  }
 }
