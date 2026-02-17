@@ -82,8 +82,8 @@ const translations: Record<string, Record<Lang, string>> = {
         en: 'The GitHub API is currently slow or temporarily unavailable. You can try again in a few minutes.',
     },
     'projects.errorRateLimit': {
-        es: 'Llegamos al límite temporal de la API de GitHub. Intenta nuevamente en unos minutos.',
-        en: 'We hit the temporary GitHub API rate limit. Please try again in a few minutes.',
+        es: 'Llegamos al límite temporal de la API de GitHub.\nIntenta nuevamente en unos minutos.',
+        en: 'We hit the temporary GitHub API rate limit.\nPlease try again in a few minutes.',
     },
     'projects.errorCta': { es: 'Ver repositorio de K-FORGE', en: 'View K-FORGE repository' },
     'projects.retry': { es: 'Reintentar', en: 'Retry' },
@@ -108,8 +108,8 @@ const translations: Record<string, Record<Lang, string>> = {
         en: 'The GitHub API is currently slow or temporarily unavailable. You can try again in a few minutes.',
     },
     'team.errorRateLimit': {
-        es: 'Llegamos al límite temporal de la API de GitHub. Intenta nuevamente en unos minutos.',
-        en: 'We hit the temporary GitHub API rate limit. Please try again in a few minutes.',
+        es: 'Llegamos al límite temporal de la API de GitHub.\nIntenta nuevamente en unos minutos.',
+        en: 'We hit the temporary GitHub API rate limit.\nPlease try again in a few minutes.',
     },
     'team.errorCta': { es: 'Ver repositorio de K-FORGE', en: 'View K-FORGE repository' },
     'team.retry': { es: 'Reintentar', en: 'Retry' },

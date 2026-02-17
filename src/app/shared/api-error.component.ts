@@ -21,7 +21,7 @@ import { GithubIconComponent } from './github-icon.component';
       </div>
 
       <h3 class="text-xl font-semibold text-text-primary mb-2">{{ errorTitle }}</h3>
-      <p class="text-text-muted">{{ errorHint }}</p>
+      <p class="text-text-muted whitespace-pre-line">{{ errorHint }}</p>
       <p class="text-text-muted/80 text-sm mt-2 break-words">{{ errorMessage }}</p>
 
       <!-- Actions -->
