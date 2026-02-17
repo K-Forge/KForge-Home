@@ -4,11 +4,11 @@ import { FadeInDirective } from '../../directives/fade-in.directive';
 import { I18nService } from '../../services/i18n.service';
 
 @Component({
-    selector: 'app-team',
-    standalone: true,
-    imports: [FadeInDirective],
-    template: `
-    <section id="team" class="relative px-6 py-20 md:py-24 bg-surface min-h-screen flex items-center">
+  selector: 'app-team',
+  standalone: true,
+  imports: [FadeInDirective],
+  template: `
+    <section id="team" class="team-people-bg relative px-6 py-20 md:py-24 bg-surface min-h-screen flex items-center">
       <div class="max-w-6xl mx-auto w-full">
         <!-- Section Header -->
         <div class="text-center mb-14" appFadeIn="up">
@@ -108,36 +108,74 @@ import { I18nService } from '../../services/i18n.service';
       </div>
     </section>
   `,
-    styles: []
+  styles: [`
+      .team-people-bg {
+        isolation: isolate;
+      }
+
+      .team-people-bg::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: url('/assets/images/team.webp');
+        background-repeat: no-repeat;
+        background-size: 440px auto;
+        background-position: right 3% bottom 6%;
+        filter: brightness(0) saturate(100%) invert(53%) sepia(73%) saturate(1405%) hue-rotate(227deg) brightness(108%) contrast(98%);
+        opacity: 0.2;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      @media (max-width: 1024px) {
+        .team-people-bg::before {
+          background-size: 340px auto;
+          background-position: right -20px bottom 5%;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .team-people-bg::before {
+          background-size: 250px auto;
+          background-position: right -44px bottom 4%;
+          opacity: 0.16;
+        }
+      }
+
+      .team-people-bg > div {
+        position: relative;
+        z-index: 1;
+      }
+    `]
 })
 export class TeamComponent implements OnInit {
-    i18n = inject(I18nService);
-    private githubService = inject(GithubService);
+  i18n = inject(I18nService);
+  private githubService = inject(GithubService);
 
-    members = this.githubService.members;
-    membersLoading = this.githubService.membersLoading;
-    membersError = this.githubService.membersError;
+  members = this.githubService.members;
+  membersLoading = this.githubService.membersLoading;
+  membersError = this.githubService.membersError;
 
-    skeletons = Array.from({ length: 4 });
+  skeletons = Array.from({ length: 4 });
 
-    ngOnInit(): void {
-        this.githubService.fetchMembers();
+  ngOnInit(): void {
+    this.githubService.fetchMembers();
+  }
+
+  retry(): void {
+    this.githubService.fetchMembers();
+  }
+
+  formatActivityDate(value?: string | null): string {
+    if (!value) {
+      return this.i18n.t('team.noActivity');
     }
 
-    retry(): void {
-        this.githubService.fetchMembers();
-    }
-
-    formatActivityDate(value?: string | null): string {
-        if (!value) {
-            return this.i18n.t('team.noActivity');
-        }
-
-        const language = this.i18n.lang() === 'es' ? 'es-CO' : 'en-US';
-        return new Date(value).toLocaleDateString(language, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        });
-    }
+    const language = this.i18n.lang() === 'es' ? 'es-CO' : 'en-US';
+    return new Date(value).toLocaleDateString(language, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
 }

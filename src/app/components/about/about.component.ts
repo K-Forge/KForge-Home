@@ -3,11 +3,11 @@ import { FadeInDirective } from '../../directives/fade-in.directive';
 import { I18nService } from '../../services/i18n.service';
 
 @Component({
-    selector: 'app-about',
-    standalone: true,
-    imports: [FadeInDirective],
-    template: `
-    <section id="about" class="relative px-6 py-20 md:py-24 bg-surface min-h-screen flex items-center">
+  selector: 'app-about',
+  standalone: true,
+  imports: [FadeInDirective],
+  template: `
+    <section id="about" class="about-people-bg relative px-6 py-20 md:py-24 bg-surface min-h-screen flex items-center">
       <div class="max-w-6xl mx-auto w-full">
         <!-- Section Header -->
         <div class="text-center mb-14" appFadeIn="up">
@@ -77,8 +77,46 @@ import { I18nService } from '../../services/i18n.service';
       </div>
     </section>
   `,
-    styles: []
+  styles: [`
+    .about-people-bg {
+      isolation: isolate;
+    }
+
+    .about-people-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('/assets/images/forge.png');
+      background-repeat: no-repeat;
+      background-size: 340px auto;
+      background-position: left 2% top 8%;
+      filter: brightness(0) saturate(100%) invert(53%) sepia(73%) saturate(1405%) hue-rotate(227deg) brightness(108%) contrast(98%);
+      opacity: 0.2;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .about-people-bg::before {
+        background-size: 280px auto;
+        background-position: left -20px top 6%;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .about-people-bg::before {
+        background-size: 210px auto;
+        background-position: left -36px top 4%;
+        opacity: 0.16;
+      }
+    }
+
+    .about-people-bg > div {
+      position: relative;
+      z-index: 1;
+    }
+  `]
 })
 export class AboutComponent {
-    i18n = inject(I18nService);
+  i18n = inject(I18nService);
 }
