@@ -15,7 +15,7 @@ import { I18nService } from '../../services/i18n.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FadeInDirective, GithubIconComponent, SectionHeaderComponent, ApiErrorComponent],
   template: `
-    <section id="projects" class="relative px-6 py-20 md:py-24 bg-midnight min-h-screen flex items-center overflow-hidden">
+    <section class="relative px-6 py-20 md:py-24 bg-midnight min-h-screen flex items-center overflow-hidden">
 
       <!-- ═══ GRADIENT BASE ═══ -->
       <div class="absolute inset-0 bg-gradient-to-b from-midnight via-surface to-midnight"></div>

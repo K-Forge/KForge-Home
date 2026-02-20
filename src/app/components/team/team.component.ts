@@ -11,7 +11,7 @@ import { I18nService } from '../../services/i18n.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FadeInDirective, SectionHeaderComponent, ApiErrorComponent],
   template: `
-    <section id="team" class="team-people-bg relative px-6 py-20 md:py-24 bg-surface min-h-screen flex items-center">
+    <section class="team-people-bg relative px-6 py-20 md:py-24 bg-surface min-h-screen flex items-center">
       <div class="max-w-6xl mx-auto w-full">
 
         <!-- Section Header -->

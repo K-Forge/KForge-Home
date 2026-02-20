@@ -104,23 +104,31 @@ import { I18nService } from './services/i18n.service';
         <app-about />
 
         <!-- Defer heavy components until near viewport -->
-        @defer (on viewport) {
-          <app-projects />
-        } @placeholder {
-          <section id="projects" class="min-h-screen bg-midnight"></section>
-        }
+        <!-- Wrapper divs carry the IDs so the IntersectionObserver always
+             has a live DOM target, regardless of @defer load state. -->
+        <div id="projects">
+          @defer (on viewport) {
+            <app-projects />
+          } @placeholder {
+            <section class="min-h-screen bg-midnight"></section>
+          }
+        </div>
 
-        @defer (on viewport) {
-          <app-team />
-        } @placeholder {
-          <section id="team" class="min-h-screen bg-surface"></section>
-        }
+        <div id="team">
+          @defer (on viewport) {
+            <app-team />
+          } @placeholder {
+            <section class="min-h-screen bg-surface"></section>
+          }
+        </div>
 
-        @defer (on viewport) {
-          <app-contact />
-        } @placeholder {
-          <section id="contact" class="min-h-screen bg-midnight"></section>
-        }
+        <div id="contact">
+          @defer (on viewport) {
+            <app-contact />
+          } @placeholder {
+            <section class="min-h-screen bg-midnight"></section>
+          }
+        </div>
       </main>
 
       <app-footer />

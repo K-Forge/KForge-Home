@@ -12,7 +12,7 @@ type FormState = 'idle' | 'sending' | 'success' | 'error';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, FadeInDirective, SectionHeaderComponent],
   template: `
-    <section id="contact" class="relative px-6 py-20 md:py-24 bg-midnight min-h-screen flex items-center">
+    <section class="relative px-6 py-20 md:py-24 bg-midnight min-h-screen flex items-center">
       <div class="max-w-2xl mx-auto w-full">
         <!-- Section Header -->
         <app-section-header
